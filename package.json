@@ -1,0 +1,18 @@
+{
+  "name": "image-search-abstraction",
+  "version": "1.0.0",
+  "description": "Free Code Camp image search abstraction project.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jake Klassen",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^2.0.0",
+    "express": "^4.13.4",
+    "morgan": "^1.6.1",
+    "request": "^2.69.0",
+    "wrap-fn": "^0.1.4"
+  }
+}

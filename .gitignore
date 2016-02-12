@@ -1,0 +1,5 @@
+## Vagrant ##
+.vagrant/
+
+node_modules
+.env
