@@ -9,8 +9,10 @@
   "author": "Jake Klassen",
   "license": "MIT",
   "dependencies": {
+    "co": "^4.6.0",
     "dotenv": "^2.0.0",
     "express": "^4.13.4",
+    "mongodb": "^2.1.7",
     "morgan": "^1.6.1",
     "request": "^2.69.0",
     "wrap-fn": "^0.1.4"

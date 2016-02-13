@@ -5,11 +5,13 @@
 
 require('dotenv').config();
 
-const request = require('request');
+const MongoClient = require('mongodb').MongoClient;
+const co = require('co');
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
 
+// Setup Google CSE search url
 const searchUrl = `${env('GOOGLE_CSE_URL')}` +
 									`?key=${env('GOOGLE_CSE_KEY')}` +
 									`&cx=${env('GOOGLE_CSE_CX')}` +
@@ -17,59 +19,48 @@ const searchUrl = `${env('GOOGLE_CSE_URL')}` +
 									`&num=${env('GOOGLE_CSE_NUM')}` +
 									`&fields=${env('GOOGLE_CSE_FIELDS')}`;
 
+app.set('searchUrl', searchUrl);
+app.set('env', env('NODE_ENV') || 'development');
+
+// Local mongo variables
+if (app.get('env') === 'development') {
+	app.set('MONGO_HOST', env('MONGO_HOST'));
+	app.set('MONGO_DB', env('MONGO_DB'));
+}
+
+app.set('MONGO_COLLECTION', env('MONGO_COLLECTION'));
+
 app.use(morgan('dev'));
 
-const router = express.Router();
+co(function* run() {
+	const routes = require('./routes');
+	let mongoUrl;
 
-// Hangle Google CSE
-router.get('/imagesearch/:term?', (req, res) => {
-
-	// Friendly error if we have no term
-	if (!req.params.term) {
-		return res.json({
-			message: 'Provide a search term'
-		});
+	if (app.get('env') === 'development') {
+		mongoUrl = `mongodb://${app.get('MONGO_HOST')}/${app.get('MONGO_DB')}`;
+	} else if (app.get('env') === 'production') {
+		mongoUrl = env('MONGOLAB_URI');
 	}
 
-	let term = req.params.term;
-	// Must be positive
-	let offset = req.query.offset || 1;
-	let url = `${searchUrl}&start=${offset}&q=${term}`;
+	let db;
+	let collection;
 
-	request(url, (err, response, body) => {
-		body = JSON.parse(body);
+	try {
+		db = yield MongoClient.connect(mongoUrl);
+		collection = db.collection(app.get('MONGO_COLLECTION'));
+	} catch (err) {
+		console.error(err);
+		throw err;
+	}
 
-		if (err) {
-			return res.json({
-				error: err
-			});
-		}
+	const router = express.Router();
+	routes.imagesearch(app, router, collection);
 
-		if (body && body.error) {
-			return res.json({
-				error: body.error
-			});
-		}
+	app.use('/api', router);
 
-		// Format response
-		let results = body.items;
-		results = results.map((item) => {
-			return {
-				url: item.link,
-				snippet: item.snippet,
-				thumbnail: item.image.thumbnailLink,
-				context: item.image.contextLink
-			};
-		});
-
-		res.json(results);
+	app.listen(env('PORT') || 3000, () => {
+		console.log(`server listening on port ${env('PORT')}`);
 	});
-});
-
-app.use('/api', router);
-
-app.listen(process.env.PORT || 3000, () => {
-	console.log(`server listening on port ${process.env.PORT}`);
 });
 
 /**
